@@ -30,20 +30,29 @@ def train_model(
     optim,
     epoch: int = 2500,
     disp: int = 50,
-):
+    cuda=False
+):  
+    NUM_OF_BATCHES = len(meta_inputs)
+    last_loss = 0.
     model.train()
     for i in range(epoch):
         for j, (input, label) in enumerate(zip(meta_inputs, meta_labels)):
             optim.zero_grad()
             input = torch.tensor(input)
             y_true = torch.tensor(label)
+            if cuda:
+                input = input.to(device="cuda")
+                y_true = y_true.to(device="cuda")
             y_pred = model(input)
             loss = criterion(y_pred, y_true)
+            if j == NUM_OF_BATCHES-1:
+                last_loss = loss.item()
             loss.backward()
             optim.step()
 
-            if j == 0 and i % disp == disp - 1:
-                print(loss.item())
+        if i % disp == disp - 1:
+            print(f"Loss: {last_loss:.2f}")
+    # return last_loss
 
 
 @torch.no_grad()
@@ -51,14 +60,18 @@ def eval_model(
     model: nn.Module,
     meta_inputs,  # (-1, batch_size, (K-1)*N, d)
     meta_labels,  # (-1, batch_size, N)
+    cuda=False,
 ):
     model.eval()
     preds = []
     for j, (input, label) in enumerate(zip(meta_inputs, meta_labels)):
         input = torch.tensor(input)
         y_true = torch.tensor(label)
+        if cuda:
+            input = input.to(device="cuda")
+            y_true = y_true.to(device="cuda")
         logit = model(input)
         pred = torch.argmax(logit, axis=-1).cpu().reshape(-1).tolist()
         preds += pred
 
-    print(accuracy_score(meta_labels.reshape(-1), preds))
+    print(f"Acc: {accuracy_score(meta_labels.reshape(-1), preds):.4f}", )

@@ -26,7 +26,7 @@ def create_meta_trainset(
     for _images, _labels in zip(images_for_queryset, meta_labels):
         # _images.shape == 4 x 784
         # _labels.shape == 4
-        index = np.arange(4)
+        index = np.arange(N)
         np.random.shuffle(index)
         index
         temp_images.append(_images[index])
@@ -40,6 +40,7 @@ def create_meta_trainset(
 
     meta_inputs = np.concatenate([all_image_batches, train_labels], axis=-1)
     meta_inputs = meta_inputs.reshape(num_batches, B, -1, d + N)
+
     return (
         meta_inputs,
         meta_labels,
